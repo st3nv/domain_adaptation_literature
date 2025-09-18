@@ -21,10 +21,11 @@ math: mathjax
 ---
 <!-- paginate: skip -->
 
-# Sep 10 presentation
-## Lipton et al. (2018): Detecting and Correcting for Label Shift with Black Box Predictors (BBSE)
+# Sep 18 presentation
 
-## Azizzadenesheli et al. (2020): Regularized Learning for Domain Adaptation under Label Shifts (RLLS)
+
+## - Lipton et al. (2018): Detecting and Correcting for Label Shift with Black Box Predictors (BBSE)
+## - Azizzadenesheli et al. (2020): Regularized Learning for Domain Adaptation under Label Shifts (RLLS)
 
 <!-- -->
 
@@ -45,6 +46,8 @@ img {
 <!-- paginate: true -->
 <!-- header: '' -->
 <!-- footer: '' -->
+
+## Lipton et al. (2018): Detecting and Correcting for Label Shift with Black Box Predictors (BBSE)
 
 ## Notations and Problem Setup
 
@@ -72,7 +75,7 @@ $$
 \mathbf{C}_P(f):=p(f(\boldsymbol{x}), y) \in \mathbb{R}^{|\mathcal{Y}| \times|\mathcal{Y}|}
 $$
 
-Note: Assumption A3 requires that the expected predictor outputs for each class be linearly independent. This assumption
+Note: Assumption A3 requires that the expected predictor outputs for each class be linearly independent. This assumption is usually satisfied by a **non-degenerate** classifier.
 
 ---
 ## Idea 
@@ -114,7 +117,7 @@ $$
 
 ---
 
-We can now rewrite Equation (1) in matrix form:
+We can now rewrite the equation in idea slide in matrix form:
 
 $$
 \boldsymbol{\mu}_{\hat{y}}=\mathbf{C}_{\hat{y} \mid y} \boldsymbol{\mu}_y=\mathbf{C}_{\hat{y}, y} \boldsymbol{w}
@@ -129,6 +132,18 @@ $$
 
 The weight vector $\hat{\boldsymbol{w}}$ can be used to reweight the training data and obtain a consistent estimate of the target distribution $Q$.
 
+---
+## Algorithm
+
+input Samples from source distribution $X, \mathbf{y}$. Unlabeled data from target distribution $X^{\prime}$. A class of classifiers $\mathcal{F}$. Hyperparameter $0<\delta<1 / k$.
+1. Randomly split the training data into two $X_1, X_2 \in \mathbb{R}^{n / 2 \times d}$ and $\boldsymbol{y}_1, \boldsymbol{y}_2 \mathbb{R}^{n / 2}$.
+2. Use $X_1, \boldsymbol{y}_1$ to train the classifier and obtain $f \in \mathcal{F}$.
+3. On the hold-out data set $X_2, \boldsymbol{y}_2$, calculate the confusion matrix $\hat{\mathbf{C}}_{\hat{y}, y}$. If ,
+if $\sigma_{\text {min }}\left(\hat{\mathbf{C}}_{\hat{y}, y}\right) \leq \delta$ then Set $\hat{\boldsymbol{w}}=\mathbf{1}$. (Method fails)
+else Estimate $\hat{\boldsymbol{w}}=\hat{\mathbf{C}}_{\hat{y}, y}^{-1} \hat{\boldsymbol{\mu}}_{\hat{y}}$.
+1. Solve the importance weighted ERM on the $X_1, \boldsymbol{y}_1$ with $\max (\hat{\boldsymbol{w}}, \mathbf{0})$ and obtain $\tilde{f}$.
+output $\tilde{f}$
+
 --- 
 ## Theoretical Guarantees
 
@@ -142,7 +157,6 @@ $$
 \left\|\hat{\boldsymbol{\mu}}_y-\boldsymbol{\mu}_y\right\|^2 & \leq \frac{C\|\boldsymbol{w}\|^2 \log n}{n}+\left\|\boldsymbol{\nu}_y\right\|_{\infty}^2\|\hat{\boldsymbol{w}}-\boldsymbol{w}\|_2^2
 \end{aligned}
 $$
-
 ---
 
 ## Thoughts
@@ -153,4 +167,65 @@ $$
 
 ---
 
-## Regularized Learning for Domain Adaptation under Label Shifts
+## Regularized Learning for Domain Adaptation under Label Shifts (RLLS)
+
+Azizzadenesheli et al. (2020) and proposed a two-step algorithm to correct for finite sample errors in BBSE, and provided better theoretical guarantees.
+
+---
+
+## Method
+
+In BBSE, we are solving the linear system $q = C w$ to estimate weights $w$.
+
+The author defines $\theta=w-\mathbf{1}$, the weight shift vector. Then let $b:=q-C \mathbf{1}=C \theta$
+
+Instead of using the finite sample estimate $\hat{C}$ and $\hat{b}$ directly, the authors proposed to solve a **regularized least square problem**:
+
+$$
+\hat{\theta}=\underset{\theta}{\arg \min }\|\hat{C} \theta-\widehat{b}\|_2+\Delta_C\|\theta\|_2
+$$  
+where $\Delta_C>0$ is a regularization parameter. The L2-penalty shrinks the weight shift vector towards zero.
+
+---
+
+## Algorithm
+
+1. calculating the measurement error adjusted $\widehat{\theta}$
+2. computing the regularized weight $\widehat{w}=\mathbf{1}+\lambda \widehat{\theta}$ where $\lambda$ depends on the sample size $(1- \beta) n_p$.
+3. Using the estimated weights to solve the importance weighted ERM.
+  
+In particular, for step 2 of the algorithm, we choose $\lambda^{\star}=1$ whenever $n_q \geq \frac{1}{\theta_{\max }^2\left(\sigma_{\min }-\frac{1}{\sqrt{n_p}}\right)^2}$ and 0 else, where $\theta_{\max }$ is an upper bound on $\|\theta\|_2$ that we want to be robust against.
+
+---
+## Estimation Error for $\theta$
+
+For $\hat{\theta}$ as defined above, we have with probability at least $1-\delta$ that
+
+$$
+\|\widehat{\theta}-\theta\|_2 \leq \epsilon_\theta\left(n_p, n_q,\|\theta\|_2, \delta\right)
+$$
+
+where
+
+$$
+\epsilon_\theta\left(n_p, n_q,\|\theta\|_2, \delta\right):=\mathcal{O}\left(\frac{1}{\sigma_{\min }}\left(\|\theta\|_2 \sqrt{\frac{\log (k / \delta)}{(1-\beta) n_p}}+\sqrt{\frac{\log (1 / \delta)}{(1-\beta) n_p}}+\sqrt{\frac{\log (1 / \delta)}{n_q}}\right)\right) .
+$$
+
+---
+## Generalization Bound for proposed RLLS
+
+Given $n_p$ samples from the source data set and $n_q$ samples from the target set, a hypothesis class $\mathcal{H}$ and loss function $\ell$, the following generalization bound holds with probability at least $1-2 \delta$
+$$
+\mathcal{L}\left(\widehat{h}_{\widehat{w}}\right)-\mathcal{L}\left(h^*\right) \leq \epsilon_{\mathcal{G}}\left(n_p, \delta, \beta\right)+(1-\lambda)\|\theta\|_2+\lambda \epsilon_\theta\left(n_p, n_q,\|\theta\|_2, \delta, \beta\right) .
+$$
+where
+$$
+\epsilon_{\mathcal{G}}\left(n_p, \delta\right):=2 \mathcal{R}_n(\mathcal{G})+\min \left\{d_{\infty}(q \| p) \sqrt{\frac{\log (2 / \delta)}{\beta n_p}}, \frac{2 d_{\infty}(q \| p) \log (2 / \delta)}{n}+\sqrt{2 \frac{d(q \| p) \log (2 / \delta)}{n}}\right\} .
+$$
+
+---
+
+## Papers on Covariate Shift
+
+1. The papers are more focused on methodology and experiments, with less emphasis on theoretical analysis.
+2. Many of them provide generalization bounds but are 
